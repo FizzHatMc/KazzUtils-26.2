@@ -23,14 +23,12 @@ class ConfigContentPanel(
     private val expandedGroups = mutableSetOf<String>()
     private val propertyWidgets = mutableListOf<AbstractWidget>()
     private val groupWidgets = mutableListOf<AbstractWidget>()
-    private var hoveredProperty: ConfigProperty<*>? = null
     private var draggingWidget: AbstractWidget? = null
     private var openDropdownWidget: AbstractWidget? = null
 
     override fun mouseClicked(event: MouseButtonEvent, doubleClick: Boolean): Boolean {
         if (!isActive() || !isMouseOver(event.x(), event.y())) return false
 
-        // If a dropdown is open, let it handle the click first
         if (openDropdownWidget != null) {
             if (openDropdownWidget!!.mouseClicked(event, doubleClick)) return true
             openDropdownWidget = null; return true
@@ -55,7 +53,6 @@ class ConfigContentPanel(
     }
 
     override fun mouseDragged(event: MouseButtonEvent, dx: Double, dy: Double): Boolean {
-        // Forward drag events to the widget that was clicked (if any)
         if (draggingWidget != null) {
             if (draggingWidget!!.mouseDragged(event, dx, dy)) return true
         }
@@ -65,37 +62,6 @@ class ConfigContentPanel(
     override fun mouseMoved(mouseX: Double, mouseY: Double) {
         for (w in propertyWidgets) w.mouseMoved(mouseX, mouseY)
         for (w in groupWidgets) w.mouseMoved(mouseX, mouseY)
-        updateHoveredProperty(mouseX.toInt(), mouseY.toInt())
-    }
-
-    private fun updateHoveredProperty(mx: Int, my: Int) {
-        hoveredProperty = null
-        val category = selectedCategory ?: return
-        val theme = ConfigThemeManager.getActive()
-        val cx = getX() + theme.padding
-        val cw = width - theme.padding * 2 - theme.scrollbarWidth - theme.smallPadding
-        var cy = getY() + theme.padding + scrollOffset
-
-        for (sub in category.subCategories) {
-            cy += theme.bannerHeight + theme.smallPadding
-            for (prop in sub.directProperties) {
-                if (mx in cx until (cx + cw) && my in cy until (cy + theme.propertyHeight)) {
-                    hoveredProperty = prop; return
-                }
-                cy += theme.propertyHeight + theme.smallPadding
-            }
-            for (group in sub.groups) {
-                cy += theme.groupHeaderHeight + theme.smallPadding
-                if (expandedGroups.contains(group.key)) {
-                    for (prop in group.properties) {
-                        if (mx in (cx + theme.padding) until (cx + cw) && my in cy until (cy + theme.propertyHeight)) {
-                            hoveredProperty = prop; return
-                        }
-                        cy += theme.propertyHeight + theme.smallPadding
-                    }
-                }
-            }
-        }
     }
 
     override fun mouseScrolled(mouseX: Double, mouseY: Double, horizontalAmount: Double, verticalAmount: Double): Boolean {
@@ -166,6 +132,46 @@ class ConfigContentPanel(
         }
     }
 
+    /**
+     * Find the hovered property and whether we're over the label area,
+     * computed from the mouse position matching the rendered layout.
+     */
+    private fun findHoveredProperty(mx: Int, my: Int): Pair<ConfigProperty<*>?, Boolean> {
+        val category = selectedCategory ?: return null to false
+        val theme = ConfigThemeManager.getActive()
+        val cx = getX() + theme.padding
+        val cw = width - theme.padding * 2 - theme.scrollbarWidth - theme.smallPadding
+        val widgetWidth = (cw * 0.45).toInt().coerceIn(100, 250)
+        val labelWidth = cw - widgetWidth - theme.smallPadding
+        var cy = getY() + theme.padding + scrollOffset
+
+        for (sub in category.subCategories) {
+            // Banner
+            cy += theme.bannerHeight + theme.smallPadding
+            for (prop in sub.directProperties) {
+                if (my in cy until (cy + theme.propertyHeight)) {
+                    val onLabel = mx in cx until (cx + labelWidth)
+                    return prop to onLabel
+                }
+                cy += theme.propertyHeight + theme.smallPadding
+            }
+            for (group in sub.groups) {
+                cy += theme.groupHeaderHeight + theme.smallPadding
+                if (expandedGroups.contains(group.key)) {
+                    for (prop in group.properties) {
+                        if (my in cy until (cy + theme.propertyHeight)) {
+                            val labelStart = cx + theme.padding
+                            val onLabel = mx in labelStart until (labelStart + labelWidth - theme.padding)
+                            return prop to onLabel
+                        }
+                        cy += theme.propertyHeight + theme.smallPadding
+                    }
+                }
+            }
+        }
+        return null to false
+    }
+
     override fun extractWidgetRenderState(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, delta: Float) {
         try {
             val theme = ConfigThemeManager.getActive()
@@ -182,6 +188,9 @@ class ConfigContentPanel(
             val widgetWidth = (cw * 0.45).toInt().coerceIn(100, 250)
             val labelWidth = cw - widgetWidth - theme.smallPadding
 
+            // Compute hover state for tooltip rendering
+            val (hoveredProp, onLabel) = findHoveredProperty(mouseX, mouseY)
+
             // Render labels and banners
             for (sub in category.subCategories) {
                 val by = cy
@@ -193,6 +202,12 @@ class ConfigContentPanel(
                     val nameTruncated = if (font.width(prop.name) > labelWidth)
                         font.plainSubstrByWidth(prop.name, labelWidth - 3) + "..." else prop.name
                     graphics.text(font, nameTruncated, cx, cy + (theme.propertyHeight - font.lineHeight) / 2, theme.propertyLabelColor, true)
+                    // Highlight the label area when hovering
+                    if (onLabel && hoveredProp == prop) {
+                        val hy = cy + (theme.propertyHeight - font.lineHeight) / 2 - 1
+                        val hh = font.lineHeight + 2
+                        graphics.fill(cx, hy, cx + labelWidth, hy + hh, 0x33FFFFFF.toInt())
+                    }
                     cy += theme.propertyHeight + theme.smallPadding
                 }
                 for (group in sub.groups) {
@@ -202,6 +217,11 @@ class ConfigContentPanel(
                             val nameTruncated = if (font.width(prop.name) > labelWidth - theme.padding)
                                 font.plainSubstrByWidth(prop.name, labelWidth - theme.padding - 3) + "..." else prop.name
                             graphics.text(font, nameTruncated, cx + theme.padding, cy + (theme.propertyHeight - font.lineHeight) / 2, theme.propertyLabelColor, true)
+                            if (onLabel && hoveredProp == prop) {
+                                val hy = cy + (theme.propertyHeight - font.lineHeight) / 2 - 1
+                                val hh = font.lineHeight + 2
+                                graphics.fill(cx + theme.padding, hy, cx + labelWidth, hy + hh, 0x33FFFFFF.toInt())
+                            }
                             cy += theme.propertyHeight + theme.smallPadding
                         }
                     }
@@ -229,9 +249,9 @@ class ConfigContentPanel(
                 }
             }
 
-            // Tooltip on hover
-            val hovered = hoveredProperty
-            if (hovered != null && hovered.description.isNotEmpty()) {
+            // Tooltip on hover (only when hovering the name label)
+            if (onLabel && hoveredProp != null && hoveredProp!!.description.isNotEmpty()) {
+                val hovered = hoveredProp!!
                 val lines = listOf(hovered.name, hovered.description)
                 val maxTw = lines.maxOfOrNull { font.width(it) } ?: 0
                 val tw = maxTw + 12; val th = lines.size * (font.lineHeight + 2) + 6
