@@ -1,9 +1,9 @@
 package de.kazz.command.impl
 
 import de.kazz.command.SimpleKazzCommand
-import de.kazz.config.KazzConfig
-import de.kazz.config.categories.CombatConfig
+import de.kazz.config.ui.ConfigScreen
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource
+import net.minecraft.client.Minecraft
 import net.minecraft.network.chat.Component
 
 class KazzCommand(
@@ -11,7 +11,12 @@ class KazzCommand(
     override val aliases: List<String> = listOf("k","kazzhub","kaz"),
 ) : SimpleKazzCommand {
     override fun execute(source: FabricClientCommandSource): Int {
-
+        source.sendFeedback(Component.literal("Opening config UI..."))
+        // Schedule the screen to open on the next tick to avoid the chat screen
+        // closing it immediately after command execution.
+        Minecraft.getInstance().execute {
+            Minecraft.getInstance().gui.setScreen(ConfigScreen())
+        }
         return 1
     }
 }
