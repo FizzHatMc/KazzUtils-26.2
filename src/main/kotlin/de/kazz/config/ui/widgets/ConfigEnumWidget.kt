@@ -16,7 +16,8 @@ class ConfigEnumWidget(
     private val screenHeight: Int
 ) : AbstractWidget(x, y, width, height, Component.empty()) {
 
-    private var isOpen = false; private var hoveredIndex = -1
+    var isOpen = false
+    private var hoveredIndex = -1
     private val enumConstants: Array<out Enum<*>>
 
     init {

@@ -17,7 +17,9 @@ class ConfigColorWidget(
     private val screenHeight: Int
 ) : AbstractWidget(x, y, width, height, Component.empty()) {
 
-    private var isOpen = false
+    /** Whether the color preset picker is open. Public so the content panel can manage rendering order. */
+    var isOpen = false
+
     private val presets = listOf(
         ConfigColor.WHITE, ConfigColor.BLACK, ConfigColor.RED, ConfigColor.GREEN, ConfigColor.BLUE, ConfigColor.TRANSPARENT,
         ConfigColor.of(255, 255, 165, 0), ConfigColor.of(255, 128, 0, 128), ConfigColor.of(255, 0, 255, 255),

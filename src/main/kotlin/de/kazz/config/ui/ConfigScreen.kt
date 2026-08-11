@@ -4,7 +4,9 @@ import de.kazz.config.KazzConfig
 import de.kazz.config.ui.theme.ConfigThemeManager
 import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.client.gui.screens.Screen
+import net.minecraft.client.input.KeyEvent
 import net.minecraft.network.chat.Component
+import org.lwjgl.glfw.GLFW
 
 class ConfigScreen(
     parent: Screen? = null
@@ -45,6 +47,15 @@ class ConfigScreen(
         contentPanel.setCategory(categories[0])
     }
 
+    override fun keyPressed(event: KeyEvent): Boolean {
+        // Handle ESC explicitly to close the screen
+        if (event.key() == GLFW.GLFW_KEY_ESCAPE) {
+            onClose()
+            return true
+        }
+        return super.keyPressed(event)
+    }
+
     override fun extractRenderState(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, delta: Float) {
         val theme = ConfigThemeManager.getActive()
         graphics.fill(0, 0, width, height, theme.backgroundColor)
@@ -56,6 +67,8 @@ class ConfigScreen(
         val parent = parentScreen
         if (parent != null) {
             minecraft?.gui?.setScreen(parent)
+        } else {
+            minecraft?.gui?.setScreen(null)
         }
     }
 

@@ -12,14 +12,6 @@ import net.minecraft.client.input.KeyEvent
 import net.minecraft.client.input.MouseButtonEvent
 import net.minecraft.network.chat.Component
 
-/**
- * Right-side content panel with scrollable config properties.
- *
- * Layout per row:
- * - Non-slider: [label (left)] ...[widget (right, fixed width)]
- * - Slider:     [label (top)] [slider (full width, below)]
- * - Group:      [chevron + name (full width)]
- */
 class ConfigContentPanel(
     x: Int, y: Int, width: Int, height: Int,
     private val screenHeight: Int
@@ -32,26 +24,47 @@ class ConfigContentPanel(
     private val propertyWidgets = mutableListOf<AbstractWidget>()
     private val groupWidgets = mutableListOf<AbstractWidget>()
     private var hoveredProperty: ConfigProperty<*>? = null
+    private var draggingWidget: AbstractWidget? = null
+    private var openDropdownWidget: AbstractWidget? = null
 
     override fun mouseClicked(event: MouseButtonEvent, doubleClick: Boolean): Boolean {
         if (!isActive() || !isMouseOver(event.x(), event.y())) return false
-        for (w in propertyWidgets) { if (w.mouseClicked(event, doubleClick)) return true }
+
+        // If a dropdown is open, let it handle the click first
+        if (openDropdownWidget != null) {
+            if (openDropdownWidget!!.mouseClicked(event, doubleClick)) return true
+            openDropdownWidget = null; return true
+        }
+
+        for (w in propertyWidgets) {
+            if (w.mouseClicked(event, doubleClick)) {
+                if (w is ConfigColorWidget && w.isOpen) openDropdownWidget = w
+                if (w is ConfigEnumWidget && w.isOpen) openDropdownWidget = w
+                draggingWidget = w
+                return true
+            }
+        }
         for (w in groupWidgets) { if (w.mouseClicked(event, doubleClick)) return true }
         return false
     }
 
     override fun mouseReleased(event: MouseButtonEvent): Boolean {
-        for (w in propertyWidgets) { if (w.mouseReleased(event)) return true }; return false
+        draggingWidget?.mouseReleased(event)
+        draggingWidget = null
+        return false
     }
 
     override fun mouseDragged(event: MouseButtonEvent, dx: Double, dy: Double): Boolean {
-        for (w in propertyWidgets) { if (w.mouseDragged(event, dx, dy)) return true }; return false
+        // Forward drag events to the widget that was clicked (if any)
+        if (draggingWidget != null) {
+            if (draggingWidget!!.mouseDragged(event, dx, dy)) return true
+        }
+        return false
     }
 
     override fun mouseMoved(mouseX: Double, mouseY: Double) {
         for (w in propertyWidgets) w.mouseMoved(mouseX, mouseY)
         for (w in groupWidgets) w.mouseMoved(mouseX, mouseY)
-        // Track hovered property for tooltip
         updateHoveredProperty(mouseX.toInt(), mouseY.toInt())
     }
 
@@ -93,7 +106,6 @@ class ConfigContentPanel(
     }
 
     override fun keyPressed(event: KeyEvent): Boolean {
-        // Don't consume ESC — let it propagate to the screen so it closes
         for (w in propertyWidgets) { if (w.keyPressed(event)) return true }
         return false
     }
@@ -108,13 +120,13 @@ class ConfigContentPanel(
 
     private fun rebuildWidgets() {
         propertyWidgets.clear(); groupWidgets.clear()
+        openDropdownWidget = null; draggingWidget = null
         val category = selectedCategory ?: return
         val theme = ConfigThemeManager.getActive()
         val cx = getX() + theme.padding
         val cw = width - theme.padding * 2 - theme.scrollbarWidth - theme.smallPadding
         var cy = getY() + theme.padding
 
-        // Widget width: fixed area on the right side for non-slider widgets
         val widgetWidth = (cw * 0.45).toInt().coerceIn(100, 250)
 
         for (sub in category.subCategories) {
@@ -167,7 +179,6 @@ class ConfigContentPanel(
             val cw = width - theme.padding * 2 - theme.scrollbarWidth - theme.smallPadding
             var cy = getY() + theme.padding + scrollOffset
 
-            // Widget width (same as in rebuildWidgets)
             val widgetWidth = (cw * 0.45).toInt().coerceIn(100, 250)
             val labelWidth = cw - widgetWidth - theme.smallPadding
 
@@ -179,7 +190,6 @@ class ConfigContentPanel(
                 cy += theme.bannerHeight + theme.smallPadding
 
                 for (prop in sub.directProperties) {
-                    // Label on the left
                     val nameTruncated = if (font.width(prop.name) > labelWidth)
                         font.plainSubstrByWidth(prop.name, labelWidth - 3) + "..." else prop.name
                     graphics.text(font, nameTruncated, cx, cy + (theme.propertyHeight - font.lineHeight) / 2, theme.propertyLabelColor, true)
@@ -198,15 +208,26 @@ class ConfigContentPanel(
                 }
             }
 
-            // Render child widgets (on top of labels)
+            // Render child widgets inside scissor (NOT open dropdowns)
             for (w in propertyWidgets) {
-                w.extractRenderState(graphics, mouseX, mouseY, delta)
+                if (w !is ConfigColorWidget || !w.isOpen) {
+                    if (w !is ConfigEnumWidget || !w.isOpen) {
+                        w.extractRenderState(graphics, mouseX, mouseY, delta)
+                    }
+                }
             }
             for (w in groupWidgets) {
                 w.extractRenderState(graphics, mouseX, mouseY, delta)
             }
 
             graphics.disableScissor()
+
+            // Render open dropdowns on top (outside scissor)
+            for (w in propertyWidgets) {
+                if ((w is ConfigColorWidget && w.isOpen) || (w is ConfigEnumWidget && w.isOpen)) {
+                    w.extractRenderState(graphics, mouseX, mouseY, delta)
+                }
+            }
 
             // Tooltip on hover
             val hovered = hoveredProperty
