@@ -12,6 +12,14 @@ import net.minecraft.client.input.KeyEvent
 import net.minecraft.client.input.MouseButtonEvent
 import net.minecraft.network.chat.Component
 
+/**
+ * Right-side content panel with scrollable config properties.
+ *
+ * Layout per row:
+ * - Non-slider: [label (left)] ...[widget (right, fixed width)]
+ * - Slider:     [label (top)] [slider (full width, below)]
+ * - Group:      [chevron + name (full width)]
+ */
 class ConfigContentPanel(
     x: Int, y: Int, width: Int, height: Int,
     private val screenHeight: Int
@@ -23,6 +31,7 @@ class ConfigContentPanel(
     private val expandedGroups = mutableSetOf<String>()
     private val propertyWidgets = mutableListOf<AbstractWidget>()
     private val groupWidgets = mutableListOf<AbstractWidget>()
+    private var hoveredProperty: ConfigProperty<*>? = null
 
     override fun mouseClicked(event: MouseButtonEvent, doubleClick: Boolean): Boolean {
         if (!isActive() || !isMouseOver(event.x(), event.y())) return false
@@ -42,6 +51,38 @@ class ConfigContentPanel(
     override fun mouseMoved(mouseX: Double, mouseY: Double) {
         for (w in propertyWidgets) w.mouseMoved(mouseX, mouseY)
         for (w in groupWidgets) w.mouseMoved(mouseX, mouseY)
+        // Track hovered property for tooltip
+        updateHoveredProperty(mouseX.toInt(), mouseY.toInt())
+    }
+
+    private fun updateHoveredProperty(mx: Int, my: Int) {
+        hoveredProperty = null
+        val category = selectedCategory ?: return
+        val theme = ConfigThemeManager.getActive()
+        val cx = getX() + theme.padding
+        val cw = width - theme.padding * 2 - theme.scrollbarWidth - theme.smallPadding
+        var cy = getY() + theme.padding + scrollOffset
+
+        for (sub in category.subCategories) {
+            cy += theme.bannerHeight + theme.smallPadding
+            for (prop in sub.directProperties) {
+                if (mx in cx until (cx + cw) && my in cy until (cy + theme.propertyHeight)) {
+                    hoveredProperty = prop; return
+                }
+                cy += theme.propertyHeight + theme.smallPadding
+            }
+            for (group in sub.groups) {
+                cy += theme.groupHeaderHeight + theme.smallPadding
+                if (expandedGroups.contains(group.key)) {
+                    for (prop in group.properties) {
+                        if (mx in (cx + theme.padding) until (cx + cw) && my in cy until (cy + theme.propertyHeight)) {
+                            hoveredProperty = prop; return
+                        }
+                        cy += theme.propertyHeight + theme.smallPadding
+                    }
+                }
+            }
+        }
     }
 
     override fun mouseScrolled(mouseX: Double, mouseY: Double, horizontalAmount: Double, verticalAmount: Double): Boolean {
@@ -52,7 +93,9 @@ class ConfigContentPanel(
     }
 
     override fun keyPressed(event: KeyEvent): Boolean {
-        for (w in propertyWidgets) { if (w.keyPressed(event)) return true }; return false
+        // Don't consume ESC — let it propagate to the screen so it closes
+        for (w in propertyWidgets) { if (w.keyPressed(event)) return true }
+        return false
     }
 
     override fun charTyped(event: CharacterEvent): Boolean {
@@ -71,10 +114,14 @@ class ConfigContentPanel(
         val cw = width - theme.padding * 2 - theme.scrollbarWidth - theme.smallPadding
         var cy = getY() + theme.padding
 
+        // Widget width: fixed area on the right side for non-slider widgets
+        val widgetWidth = (cw * 0.45).toInt().coerceIn(100, 250)
+
         for (sub in category.subCategories) {
             cy += theme.bannerHeight + theme.smallPadding
             for (prop in sub.directProperties) {
-                createWidgetForProperty(prop, cx, cy, cw, theme.propertyHeight)?.let { propertyWidgets.add(it) }
+                val widgetX = cx + cw - widgetWidth
+                createWidgetForProperty(prop, widgetX, cy, widgetWidth, theme.propertyHeight)?.let { propertyWidgets.add(it) }
                 cy += theme.propertyHeight + theme.smallPadding
             }
             for (group in sub.groups) {
@@ -86,7 +133,8 @@ class ConfigContentPanel(
                 cy += theme.groupHeaderHeight + theme.smallPadding
                 if (exp) {
                     for (prop in group.properties) {
-                        createWidgetForProperty(prop, cx + theme.padding, cy, cw - theme.padding, theme.propertyHeight)?.let { propertyWidgets.add(it) }
+                        val widgetX = cx + theme.padding + cw - theme.padding - widgetWidth
+                        createWidgetForProperty(prop, widgetX, cy, widgetWidth, theme.propertyHeight)?.let { propertyWidgets.add(it) }
                         cy += theme.propertyHeight + theme.smallPadding
                     }
                 }
@@ -119,13 +167,9 @@ class ConfigContentPanel(
             val cw = width - theme.padding * 2 - theme.scrollbarWidth - theme.smallPadding
             var cy = getY() + theme.padding + scrollOffset
 
-            // Render child widgets first (they need to be in the right position)
-            for (w in propertyWidgets) {
-                w.extractRenderState(graphics, mouseX, mouseY, delta)
-            }
-            for (w in groupWidgets) {
-                w.extractRenderState(graphics, mouseX, mouseY, delta)
-            }
+            // Widget width (same as in rebuildWidgets)
+            val widgetWidth = (cw * 0.45).toInt().coerceIn(100, 250)
+            val labelWidth = cw - widgetWidth - theme.smallPadding
 
             // Render labels and banners
             for (sub in category.subCategories) {
@@ -135,21 +179,51 @@ class ConfigContentPanel(
                 cy += theme.bannerHeight + theme.smallPadding
 
                 for (prop in sub.directProperties) {
-                    graphics.text(font, prop.name, cx, cy + (theme.propertyHeight - font.lineHeight) / 2, theme.propertyLabelColor, true)
+                    // Label on the left
+                    val nameTruncated = if (font.width(prop.name) > labelWidth)
+                        font.plainSubstrByWidth(prop.name, labelWidth - 3) + "..." else prop.name
+                    graphics.text(font, nameTruncated, cx, cy + (theme.propertyHeight - font.lineHeight) / 2, theme.propertyLabelColor, true)
                     cy += theme.propertyHeight + theme.smallPadding
                 }
                 for (group in sub.groups) {
                     cy += theme.groupHeaderHeight + theme.smallPadding
                     if (expandedGroups.contains(group.key)) {
                         for (prop in group.properties) {
-                            graphics.text(font, prop.name, cx + theme.padding, cy + (theme.propertyHeight - font.lineHeight) / 2, theme.propertyLabelColor, true)
+                            val nameTruncated = if (font.width(prop.name) > labelWidth - theme.padding)
+                                font.plainSubstrByWidth(prop.name, labelWidth - theme.padding - 3) + "..." else prop.name
+                            graphics.text(font, nameTruncated, cx + theme.padding, cy + (theme.propertyHeight - font.lineHeight) / 2, theme.propertyLabelColor, true)
                             cy += theme.propertyHeight + theme.smallPadding
                         }
                     }
                 }
             }
 
+            // Render child widgets (on top of labels)
+            for (w in propertyWidgets) {
+                w.extractRenderState(graphics, mouseX, mouseY, delta)
+            }
+            for (w in groupWidgets) {
+                w.extractRenderState(graphics, mouseX, mouseY, delta)
+            }
+
             graphics.disableScissor()
+
+            // Tooltip on hover
+            val hovered = hoveredProperty
+            if (hovered != null && hovered.description.isNotEmpty()) {
+                val lines = listOf(hovered.name, hovered.description)
+                val maxTw = lines.maxOfOrNull { font.width(it) } ?: 0
+                val tw = maxTw + 12; val th = lines.size * (font.lineHeight + 2) + 6
+                val tx = (mouseX + 12).coerceIn(0, getX() + width - tw - 4)
+                val ty = (mouseY - th - 8).coerceAtLeast(0)
+                graphics.fill(tx, ty, tx + tw, ty + th, 0xCC111122.toInt())
+                graphics.outline(tx, ty, tw, th, theme.borderColor)
+                var lcy = ty + 4
+                for (line in lines) {
+                    graphics.text(font, line, tx + 6, lcy, if (line == hovered.name) 0xFFFFAA00.toInt() else 0xFFCCCCCC.toInt(), true)
+                    lcy += font.lineHeight + 2
+                }
+            }
 
             // Scrollbar
             val maxScroll = (contentHeight - height).coerceAtLeast(0)
