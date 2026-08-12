@@ -1,6 +1,7 @@
 package de.kazz.config.categories
 
 import de.kazz.config.ConfigCategoryScope
+import de.kazz.config.ConfigColor
 import de.kazz.config.ConfigSubCategoryScope
 import kotlin.random.Random
 
@@ -51,5 +52,11 @@ object FarmingConfig : ConfigCategoryScope("Farming") {
             val player = net.minecraft.client.Minecraft.getInstance().player
             player?.sendSystemMessage(net.minecraft.network.chat.Component.literal("Hello from button"))
         }
+
+        val profitCountColor = color(
+            name = "Waypoint Color",
+            description = "Color of the waypoint marker",
+            default = ConfigColor.RED
+        )
     }
 }

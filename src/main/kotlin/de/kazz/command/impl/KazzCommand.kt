@@ -8,12 +8,9 @@ import net.minecraft.network.chat.Component
 
 class KazzCommand(
     override val name: String = "kazzutils",
-    override val aliases: List<String> = listOf("k","kazzhub","kaz"),
+    override val aliases: List<String> = listOf("k","kazzhub","kaz","kazz"),
 ) : SimpleKazzCommand {
     override fun execute(source: FabricClientCommandSource): Int {
-        source.sendFeedback(Component.literal("Opening config UI..."))
-        // Schedule the screen to open on the next tick to avoid the chat screen
-        // closing it immediately after command execution.
         Minecraft.getInstance().execute {
             Minecraft.getInstance().gui.setScreen(ConfigScreen())
         }
