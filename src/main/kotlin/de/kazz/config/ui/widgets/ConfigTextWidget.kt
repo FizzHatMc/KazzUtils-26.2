@@ -34,7 +34,12 @@ class ConfigTextWidget(
             cursorPos = font.plainSubstrByWidth(text, rx).length
             return true
         }
-        isFocused = false; return false
+        // Clicking outside — commit the text buffer if we were focused
+        if (isFocused) {
+            isFocused = false
+            property.currentValue = textBuffer.toString()
+        }
+        return false
     }
 
     override fun keyPressed(event: KeyEvent): Boolean {
