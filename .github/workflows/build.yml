@@ -28,6 +28,19 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Install SSH key for deploy pushes
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.ACTIONS_DEPLOY_KEY }}
+          known_hosts: 'github.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg='
+          if_key: forward
+
+      - name: Configure git for deploy pushes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin git@github.com:${{ github.repository }}.git
+
       - name: Verify merge commit (main/Alpha only)
         if: github.ref_name == 'main' || github.ref_name == 'Alpha'
         run: |
@@ -44,7 +57,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Extract PR number from merge commit message: "Merge pull request #N ..."
           COMMIT_MSG=$(git log --format="%s" -1)
           PR_NUMBER=$(echo "$COMMIT_MSG" | grep -oP 'Merge pull request #\K\d+' || echo "")
 
@@ -54,7 +66,6 @@ jobs:
             exit 0
           fi
 
-          # Fetch PR body via GitHub API
           PR_BODY=$(gh api "repos/${{ github.repository }}/pulls/$PR_NUMBER" --jq '.body' || echo "")
 
           if echo "$PR_BODY" | grep -qi "Build=1"; then
@@ -65,7 +76,6 @@ jobs:
             echo "should_build=false" >> "$GITHUB_OUTPUT"
           fi
 
-      # ---- Everything below runs only if: main/Alpha always, Dev only when Build=1 ----
       - name: Determine if we should proceed
         id: should-proceed
         run: |
@@ -112,11 +122,9 @@ jobs:
       - name: Commit version bump back to branch
         if: steps.should-proceed.outputs.proceed == 'true'
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
           git add gradle.properties
           git commit -m "Bump version to ${{ steps.new-version.outputs.new_version }} [skip ci]"
-          git push
+          git push origin ${{ github.ref_name }}
 
       - name: Build with Gradle
         if: steps.should-proceed.outputs.proceed == 'true'
@@ -150,7 +158,6 @@ jobs:
         if: steps.should-proceed.outputs.proceed == 'true'
         run: |
           JAR_NAME="${{ steps.release-details.outputs.jar_name }}"
-          # Find the main jar (not sources or dev intermediary), copy and rename it
           MAIN_JAR=$(ls build/libs/kazzutils-*.jar | grep -v sources | grep -v dev | head -1)
           cp "$MAIN_JAR" "$JAR_NAME"
           echo "artifact_path=${JAR_NAME}" >> "$GITHUB_ENV"
