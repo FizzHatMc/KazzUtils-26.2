@@ -2,6 +2,7 @@ package de.kazz.config.categories
 
 import de.kazz.config.ConfigCategoryScope
 import de.kazz.config.ConfigSubCategoryScope
+import kotlin.random.Random
 
 /**
  * Farming category config.
@@ -32,5 +33,23 @@ object FarmingConfig : ConfigCategoryScope("Farming") {
             min = 1,
             max = 20
         )
+
+        enum class FarmingMode {
+            MANUAL, SEMI_AUTO, FULL_AUTO
+        }
+
+        val farmingMode = enumChoice(
+            name = "Farming Mode",
+            description = "Select the farming automation mode",
+            default = FarmingMode.SEMI_AUTO
+        )
+
+        val testButton = actionButton(
+            name = "Test Button",
+            description = "Sends a test message in chat"
+        ) {
+            val player = net.minecraft.client.Minecraft.getInstance().player
+            player?.sendSystemMessage(net.minecraft.network.chat.Component.literal("Hello from button"))
+        }
     }
 }
