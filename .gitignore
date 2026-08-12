@@ -33,6 +33,12 @@ bin/
 run/
 docs/
 
+# deploy keys (never commit these)
+
+deploy_key
+deploy_key.pub
+*.pem
+
 # java
 
 hs_err_*.log

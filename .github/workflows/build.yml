@@ -1,30 +1,174 @@
-# Automatically build the project and run any configured tests for every push
-# and submitted pull request. This can help catch issues that only occur on
-# certain platforms or Java versions, and provides a first line of defence
-# against bad commits.
+name: Build and Release
 
-name: build
-on: [pull_request, push]
+on:
+  push:
+    branches:
+      - main
+      - Alpha
+      - Dev
 
 jobs:
-  build:
-    runs-on: ubuntu-24.04
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
     steps:
-      - name: checkout repository
-        uses: actions/checkout@v6
-      - name: validate gradle wrapper
-        uses: gradle/actions/wrapper-validation@v6
-      - name: setup jdk
-        uses: actions/setup-java@v5
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
-          java-version: '25'
-          distribution: 'microsoft'
-      - name: make gradle wrapper executable
-        run: chmod +x ./gradlew
-      - name: build
+          fetch-depth: 0
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: 25
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Install SSH key for deploy pushes
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.ACTIONS_DEPLOY_KEY }}
+          known_hosts: 'github.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg='
+          if_key: forward
+
+      - name: Configure git for deploy pushes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin git@github.com:${{ github.repository }}.git
+
+      - name: Verify merge commit (main/Alpha only)
+        if: github.ref_name == 'main' || github.ref_name == 'Alpha'
+        run: |
+          PARENT_COUNT=$(git log --format="%p" -1 | wc -w)
+          if [ "$PARENT_COUNT" -lt 2 ]; then
+            echo "ERROR: Direct push to ${{ github.ref_name }} is not allowed. Use a pull request."
+            exit 1
+          fi
+          echo "Merge commit verified: $PARENT_COUNT parents"
+
+      - name: Check build flag (Dev only)
+        id: check-build-flag
+        if: github.ref_name == 'Dev'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          COMMIT_MSG=$(git log --format="%s" -1)
+          PR_NUMBER=$(echo "$COMMIT_MSG" | grep -oP 'Merge pull request #\K\d+' || echo "")
+
+          if [ -z "$PR_NUMBER" ]; then
+            echo "Not a PR merge into Dev. Skipping build."
+            echo "should_build=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          PR_BODY=$(gh api "repos/${{ github.repository }}/pulls/$PR_NUMBER" --jq '.body' || echo "")
+
+          if echo "$PR_BODY" | grep -qi "Build=1"; then
+            echo "Build flag detected. Proceeding with build."
+            echo "should_build=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Build flag not set (Build=0 or missing). Skipping build."
+            echo "should_build=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Determine if we should proceed
+        id: should-proceed
+        run: |
+          if [ "${{ github.ref_name }}" = "Dev" ]; then
+            echo "proceed=${{ steps.check-build-flag.outputs.should_build }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "proceed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Read current version
+        if: steps.should-proceed.outputs.proceed == 'true'
+        id: current-version
+        run: |
+          echo "mod_version=$(grep '^version=' gradle.properties | cut -d'=' -f2)" >> "$GITHUB_OUTPUT"
+          echo "minecraft_version=$(grep '^minecraft_version=' gradle.properties | cut -d'=' -f2)" >> "$GITHUB_OUTPUT"
+
+      - name: Compute new version based on branch
+        if: steps.should-proceed.outputs.proceed == 'true'
+        id: new-version
+        run: |
+          CURRENT="${{ steps.current-version.outputs.mod_version }}"
+          BRANCH="${GITHUB_REF_NAME}"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+
+          if [ "$BRANCH" = "main" ]; then
+            MAJOR=$((MAJOR + 1))
+            MINOR=0
+            PATCH=0
+          elif [ "$BRANCH" = "Alpha" ]; then
+            MINOR=$((MINOR + 1))
+            PATCH=0
+          elif [ "$BRANCH" = "Dev" ]; then
+            PATCH=$((PATCH + 1))
+          fi
+
+          NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          echo "new_version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Update version in gradle.properties
+        if: steps.should-proceed.outputs.proceed == 'true'
+        run: |
+          sed -i "s/^version=.*/version=${{ steps.new-version.outputs.new_version }}/" gradle.properties
+
+      - name: Commit version bump back to branch
+        if: steps.should-proceed.outputs.proceed == 'true'
+        run: |
+          git add gradle.properties
+          git commit -m "Bump version to ${{ steps.new-version.outputs.new_version }} [skip ci]"
+          git push origin ${{ github.ref_name }}
+
+      - name: Build with Gradle
+        if: steps.should-proceed.outputs.proceed == 'true'
         run: ./gradlew build
-      - name: capture build artifacts
-        uses: actions/upload-artifact@v7
+
+      - name: Determine release details
+        if: steps.should-proceed.outputs.proceed == 'true'
+        id: release-details
+        run: |
+          NEW_VERSION="${{ steps.new-version.outputs.new_version }}"
+          MC_VERSION="${{ steps.current-version.outputs.minecraft_version }}"
+          BRANCH="${GITHUB_REF_NAME}"
+
+          JAR_NAME="KazzUtils-${MC_VERSION}-${NEW_VERSION}.jar"
+
+          if [ "$BRANCH" = "main" ]; then
+            IS_PRERELEASE="false"
+            MAKE_LATEST="true"
+          else
+            IS_PRERELEASE="true"
+            MAKE_LATEST="false"
+          fi
+
+          echo "jar_name=${JAR_NAME}" >> "$GITHUB_OUTPUT"
+          echo "is_prerelease=${IS_PRERELEASE}" >> "$GITHUB_OUTPUT"
+          echo "release_tag=${MC_VERSION}-${NEW_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "release_title=KazzUtils ${MC_VERSION} - ${NEW_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "make_latest=${MAKE_LATEST}" >> "$GITHUB_OUTPUT"
+
+      - name: Rename and prepare jar
+        if: steps.should-proceed.outputs.proceed == 'true'
+        run: |
+          JAR_NAME="${{ steps.release-details.outputs.jar_name }}"
+          MAIN_JAR=$(ls build/libs/kazzutils-*.jar | grep -v sources | grep -v dev | head -1)
+          cp "$MAIN_JAR" "$JAR_NAME"
+          echo "artifact_path=${JAR_NAME}" >> "$GITHUB_ENV"
+
+      - name: Create Release
+        if: steps.should-proceed.outputs.proceed == 'true'
+        uses: softprops/action-gh-release@v2
         with:
-          name: Artifacts
-          path: build/libs/
+          tag_name: ${{ steps.release-details.outputs.release_tag }}
+          name: ${{ steps.release-details.outputs.release_title }}
+          body: ${{ github.event.head_commit.message }}
+          files: ${{ env.artifact_path }}
+          prerelease: ${{ steps.release-details.outputs.is_prerelease }}
+          make_latest: ${{ steps.release-details.outputs.make_latest }}
