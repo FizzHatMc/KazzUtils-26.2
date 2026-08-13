@@ -28,6 +28,7 @@
 			}
 		]
 	},
+	"accessWidener": "kazzutils.accesswidener",
 	"mixins": [
 		"kazzutils.mixins.json"
 	],

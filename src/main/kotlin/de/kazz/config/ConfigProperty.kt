@@ -42,6 +42,12 @@ class ConfigProperty<T>(
     var onChanged: ((ConfigProperty<T>) -> Unit)? = null
 
     /**
+     * If non-null and returns true, this property should be hidden from the UI.
+     * The property's value is preserved regardless of visibility.
+     */
+    var hiddenWhen: (() -> Boolean)? = null
+
+    /**
      * Reset this property to its default value.
      */
     fun reset() {
