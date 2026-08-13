@@ -64,6 +64,13 @@ object KazzUtilsClient : ClientModInitializer {
         // ── 6. Register HUD elements and listeners ────────────────────
         HudManager.register(SackTracker())
 
+        // Load persisted HUD positions after all elements are registered
+        try {
+            HudManager.load()
+        } catch (e: Exception) {
+            LOGGER.error("Failed to load HUD positions: ${e.message}", e)
+        }
+
         // Register chat message listener
         SackTracker.listenToChatMessages()
 
