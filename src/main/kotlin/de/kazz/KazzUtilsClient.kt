@@ -10,7 +10,10 @@ import de.kazz.features.general.sack.SackInventoryScanner
 import de.kazz.features.general.sack.SackItemDatabase
 import de.kazz.features.general.sack.SackTracker
 import de.kazz.features.general.sack.SackTrackerData
+import de.kazz.features.waypoints.WaypointManager
+import de.kazz.features.waypoints.WaypointRenderer
 import net.fabricmc.api.ClientModInitializer
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents
 import org.slf4j.LoggerFactory
 
 object KazzUtilsClient : ClientModInitializer {
@@ -76,5 +79,17 @@ object KazzUtilsClient : ClientModInitializer {
 
         // Register sack inventory scanner to detect when sack menus open
         SackInventoryScanner.initialize()
+
+        // ── 7. Initialize waypoint rendering system ───────────────────
+        try {
+            WaypointRenderer.initialize()
+        } catch (e: Exception) {
+            LOGGER.error("Failed to initialize waypoint renderer: ${e.message}", e)
+        }
+
+        // Clear temporary waypoints when the world changes (dimension change / reload)
+        ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register { _, _ ->
+            WaypointManager.clearTemporary()
+        }
     }
 }

@@ -7,6 +7,8 @@ import de.kazz.features.general.sack.SackTrackerScreen
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource
 import net.minecraft.client.Minecraft
 import com.mojang.brigadier.tree.LiteralCommandNode
+import de.kazz.config.ConfigColor
+import de.kazz.features.waypoints.WaypointManager
 
 class KazzCommand(
     override val name: String = "kazzutils",
@@ -28,6 +30,13 @@ class KazzCommand(
                 Minecraft.getInstance().execute {
                     Minecraft.getInstance().gui.setScreen(SackTrackerScreen())
                 }
+                1
+            }
+        })
+
+        then(literal("test") {
+            executes { source, context ->
+                WaypointManager.addWaypoint(100.0, 64.0, 200.0, seeThrough = true, ConfigColor.RED, ttlSeconds = 5.0)
                 1
             }
         })
