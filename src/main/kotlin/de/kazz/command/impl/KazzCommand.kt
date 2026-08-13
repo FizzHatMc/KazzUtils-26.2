@@ -1,22 +1,35 @@
 package de.kazz.command.impl
 
-import de.kazz.command.SimpleKazzCommand
+import de.kazz.command.CommandDsl.literal
+import de.kazz.command.ParameterKazzCommand
 import de.kazz.config.ui.ConfigScreen
+import de.kazz.features.general.sack.SackTrackerScreen
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource
 import net.minecraft.client.Minecraft
-import net.minecraft.network.chat.Component
+import com.mojang.brigadier.tree.LiteralCommandNode
 
 class KazzCommand(
     override val name: String = "kazzutils",
-    override val aliases: List<String> = listOf("k","kazzhub","kaz"),
-) : SimpleKazzCommand {
-    override fun execute(source: FabricClientCommandSource): Int {
-        source.sendFeedback(Component.literal("Opening config UI..."))
-        // Schedule the screen to open on the next tick to avoid the chat screen
-        // closing it immediately after command execution.
-        Minecraft.getInstance().execute {
-            Minecraft.getInstance().gui.setScreen(ConfigScreen())
+    override val aliases: List<String> = listOf("kazzhub", "kazz", "k", "kaz"),
+) : ParameterKazzCommand {
+
+    override fun build(): LiteralCommandNode<FabricClientCommandSource> = literal(name) {
+        // No arguments → open config screen (backward compatible)
+        executes { source, _ ->
+            Minecraft.getInstance().execute {
+                Minecraft.getInstance().gui.setScreen(ConfigScreen())
+            }
+            1
         }
-        return 1
+
+        // /kazzutils sacktracker → open SackTrackerScreen
+        then(literal("sacktracker") {
+            executes { source, _ ->
+                Minecraft.getInstance().execute {
+                    Minecraft.getInstance().gui.setScreen(SackTrackerScreen())
+                }
+                1
+            }
+        })
     }
 }

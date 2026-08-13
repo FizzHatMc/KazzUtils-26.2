@@ -28,5 +28,33 @@ class ConfigValue<T> @PublishedApi internal constructor(
         property.onChanged = { callback(it.currentValue) }
     }
 
+    /**
+     * Only show this property in the UI when [predicate] returns true.
+     * The property's value is preserved regardless of visibility.
+     *
+     * Usage:
+     * ```kotlin
+     * val someSetting = intSlider(...).showWhen { toggleSwitch.value }
+     * ```
+     */
+    fun showWhen(predicate: () -> Boolean): ConfigValue<T> {
+        property.hiddenWhen = { !predicate() }
+        return this
+    }
+
+    /**
+     * Hide this property in the UI when [predicate] returns true.
+     * The property's value is preserved regardless of visibility.
+     *
+     * Usage:
+     * ```kotlin
+     * val someSetting = intSlider(...).hiddenWhen { !toggleSwitch.value }
+     * ```
+     */
+    fun hiddenWhen(predicate: () -> Boolean): ConfigValue<T> {
+        property.hiddenWhen = predicate
+        return this
+    }
+
     override fun toString(): String = "ConfigValue(${property.key} = ${property.currentValue})"
 }

@@ -1,0 +1,113 @@
+{
+  "sacks": [
+    {
+      "name": "Enchanted Mining Sack",
+      "items": [
+        { "name": "Enchanted Cobblestone", "id": "minecraft:cobblestone" },
+        { "name": "Enchanted Iron", "id": "minecraft:iron_ingot" },
+        { "name": "Enchanted Gold", "id": "minecraft:gold_ingot" },
+        { "name": "Enchanted Diamond", "id": "minecraft:diamond" },
+        { "name": "Enchanted Lapis Lazuli", "id": "minecraft:lapis_lazuli" },
+        { "name": "Enchanted Redstone", "id": "minecraft:redstone" },
+        { "name": "Enchanted Emerald", "id": "minecraft:emerald" },
+        { "name": "Enchanted Quartz", "id": "minecraft:quartz" },
+        { "name": "Enchanted Obsidian", "id": "minecraft:obsidian" },
+        { "name": "Enchanted Coal", "id": "minecraft:coal" },
+        { "name": "Enchanted Mithril", "id": "minecraft:prismarine_shard" },
+        { "name": "Enchanted Titanium", "id": "minecraft:prismarine_crystals" },
+        { "name": "Cobblestone", "id": "minecraft:cobblestone" },
+        { "name": "Iron Ingot", "id": "minecraft:iron_ingot" },
+        { "name": "Gold Ingot", "id": "minecraft:gold_ingot" },
+        { "name": "Diamond", "id": "minecraft:diamond" },
+        { "name": "Lapis Lazuli", "id": "minecraft:lapis_lazuli" },
+        { "name": "Redstone", "id": "minecraft:redstone" },
+        { "name": "Emerald", "id": "minecraft:emerald" },
+        { "name": "Quartz", "id": "minecraft:quartz" },
+        { "name": "Obsidian", "id": "minecraft:obsidian" },
+        { "name": "Coal", "id": "minecraft:coal" },
+        { "name": "Mithril", "id": "minecraft:prismarine_shard" },
+        { "name": "Titanium", "id": "minecraft:prismarine_crystals" }
+      ]
+    },
+    {
+      "name": "Farming Sack",
+      "items": [
+        { "name": "Wheat", "id": "minecraft:wheat" },
+        { "name": "Carrot", "id": "minecraft:carrot" },
+        { "name": "Potato", "id": "minecraft:potato" },
+        { "name": "Enchanted Wheat", "id": "minecraft:wheat" },
+        { "name": "Enchanted Carrot", "id": "minecraft:carrot" },
+        { "name": "Enchanted Potato", "id": "minecraft:potato" },
+        { "name": "Melon", "id": "minecraft:melon_slice" },
+        { "name": "Pumpkin", "id": "minecraft:pumpkin" },
+        { "name": "Sugar Cane", "id": "minecraft:sugar_cane" },
+        { "name": "Cactus", "id": "minecraft:cactus" },
+        { "name": "Mushroom", "id": "minecraft:red_mushroom" },
+        { "name": "Nether Wart", "id": "minecraft:nether_wart" },
+        { "name": "Enchanted Melon", "id": "minecraft:melon_slice" },
+        { "name": "Enchanted Pumpkin", "id": "minecraft:pumpkin" },
+        { "name": "Enchanted Sugar Cane", "id": "minecraft:sugar_cane" },
+        { "name": "Enchanted Cactus", "id": "minecraft:cactus" },
+        { "name": "Enchanted Mushroom", "id": "minecraft:red_mushroom" },
+        { "name": "Enchanted Nether Wart", "id": "minecraft:nether_wart" }
+      ]
+    },
+    {
+      "name": "Foraging Sack",
+      "items": [
+        { "name": "Oak Log", "id": "minecraft:oak_log" },
+        { "name": "Spruce Log", "id": "minecraft:spruce_log" },
+        { "name": "Birch Log", "id": "minecraft:birch_log" },
+        { "name": "Jungle Log", "id": "minecraft:jungle_log" },
+        { "name": "Acacia Log", "id": "minecraft:acacia_log" },
+        { "name": "Dark Oak Log", "id": "minecraft:dark_oak_log" },
+        { "name": "Enchanted Oak Log", "id": "minecraft:oak_log" },
+        { "name": "Enchanted Spruce Log", "id": "minecraft:spruce_log" },
+        { "name": "Enchanted Birch Log", "id": "minecraft:birch_log" },
+        { "name": "Enchanted Jungle Log", "id": "minecraft:jungle_log" },
+        { "name": "Enchanted Acacia Log", "id": "minecraft:acacia_log" },
+        { "name": "Enchanted Dark Oak Log", "id": "minecraft:dark_oak_log" }
+      ]
+    },
+    {
+      "name": "Fishing Sack",
+      "items": [
+        { "name": "Raw Fish", "id": "minecraft:cod" },
+        { "name": "Raw Salmon", "id": "minecraft:salmon" },
+        { "name": "Clownfish", "id": "minecraft:tropical_fish" },
+        { "name": "Pufferfish", "id": "minecraft:pufferfish" },
+        { "name": "Enchanted Raw Fish", "id": "minecraft:cod" },
+        { "name": "Enchanted Raw Salmon", "id": "minecraft:salmon" },
+        { "name": "Prismarine Shard", "id": "minecraft:prismarine_shard" },
+        { "name": "Prismarine Crystals", "id": "minecraft:prismarine_crystals" },
+        { "name": "Sponge", "id": "minecraft:sponge" },
+        { "name": "Enchanted Sponge", "id": "minecraft:sponge" }
+      ]
+    },
+    {
+      "name": "Combat Sack",
+      "items": [
+        { "name": "Rotten Flesh", "id": "minecraft:rotten_flesh" },
+        { "name": "Bone", "id": "minecraft:bone" },
+        { "name": "String", "id": "minecraft:string" },
+        { "name": "Spider Eye", "id": "minecraft:spider_eye" },
+        { "name": "Gunpowder", "id": "minecraft:gunpowder" },
+        { "name": "Ender Pearl", "id": "minecraft:ender_pearl" },
+        { "name": "Blaze Rod", "id": "minecraft:blaze_rod" },
+        { "name": "Magma Cream", "id": "minecraft:magma_cream" },
+        { "name": "Ghast Tear", "id": "minecraft:ghast_tear" },
+        { "name": "Slimeball", "id": "minecraft:slime_ball" },
+        { "name": "Enchanted Rotten Flesh", "id": "minecraft:rotten_flesh" },
+        { "name": "Enchanted Bone", "id": "minecraft:bone" },
+        { "name": "Enchanted String", "id": "minecraft:string" },
+        { "name": "Enchanted Spider Eye", "id": "minecraft:spider_eye" },
+        { "name": "Enchanted Gunpowder", "id": "minecraft:gunpowder" },
+        { "name": "Enchanted Ender Pearl", "id": "minecraft:ender_pearl" },
+        { "name": "Enchanted Blaze Rod", "id": "minecraft:blaze_rod" },
+        { "name": "Enchanted Magma Cream", "id": "minecraft:magma_cream" },
+        { "name": "Enchanted Ghast Tear", "id": "minecraft:ghast_tear" },
+        { "name": "Enchanted Slimeball", "id": "minecraft:slime_ball" }
+      ]
+    }
+  ]
+}
