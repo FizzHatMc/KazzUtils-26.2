@@ -10,6 +10,10 @@ import de.kazz.features.general.sack.SackInventoryScanner
 import de.kazz.features.general.sack.SackItemDatabase
 import de.kazz.features.general.sack.SackTracker
 import de.kazz.features.general.sack.SackTrackerData
+import de.kazz.features.borderbox.BorderBoxManager
+import de.kazz.features.borderbox.BorderBoxRenderer
+import de.kazz.features.lines.LineManager
+import de.kazz.features.lines.LineRenderer
 import de.kazz.features.waypoints.WaypointManager
 import de.kazz.features.waypoints.WaypointRenderer
 import net.fabricmc.api.ClientModInitializer
@@ -87,9 +91,25 @@ object KazzUtilsClient : ClientModInitializer {
             LOGGER.error("Failed to initialize waypoint renderer: ${e.message}", e)
         }
 
-        // Clear temporary waypoints when the world changes (dimension change / reload)
+        // ── 8. Initialize line rendering system ───────────────────────
+        try {
+            LineRenderer.initialize()
+        } catch (e: Exception) {
+            LOGGER.error("Failed to initialize line renderer: ${e.message}", e)
+        }
+
+        // ── 9. Initialize border box rendering system ─────────────────
+        try {
+            BorderBoxRenderer.initialize()
+        } catch (e: Exception) {
+            LOGGER.error("Failed to initialize border box renderer: ${e.message}", e)
+        }
+
+        // Clear temporary waypoints, lines, and border boxes when the world changes (dimension change / reload)
         ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register { _, _ ->
             WaypointManager.clearTemporary()
+            LineManager.clearTemporary()
+            BorderBoxManager.clearTemporary()
         }
     }
 }

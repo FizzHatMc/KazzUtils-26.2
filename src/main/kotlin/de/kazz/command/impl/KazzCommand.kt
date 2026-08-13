@@ -8,6 +8,9 @@ import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource
 import net.minecraft.client.Minecraft
 import com.mojang.brigadier.tree.LiteralCommandNode
 import de.kazz.config.ConfigColor
+import de.kazz.features.borderbox.BorderBoxManager
+import de.kazz.features.lines.LineManager
+import de.kazz.features.lines.LineStyle
 import de.kazz.features.waypoints.WaypointManager
 
 class KazzCommand(
@@ -36,7 +39,11 @@ class KazzCommand(
 
         then(literal("test") {
             executes { source, context ->
-                WaypointManager.addWaypoint(100.0, 64.0, 200.0, seeThrough = true, ConfigColor.RED, ttlSeconds = 5.0)
+                BorderBoxManager.addBorderBox(
+                    centerX = 100.0, centerY = 64.0, centerZ = 200.0,
+                    seeThrough = true, color = ConfigColor.RED,
+                    thickness = 0.1, scale = 2.0, ttlSeconds = 5.0,
+                )
                 1
             }
         })
