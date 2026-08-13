@@ -29,11 +29,17 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Install SSH key for deploy pushes
-        uses: shimataro/ssh-key-action@v2
-        with:
-          key: ${{ secrets.ACTIONS_DEPLOY_KEY }}
-          known_hosts: 'github.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg='
-          if_key: forward
+        env:
+          DEPLOY_KEY: ${{ secrets.ACTIONS_DEPLOY_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$DEPLOY_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+          # Use the deploy key for pushes to the repo
+          echo "Host github.com" >> ~/.ssh/config
+          echo "  IdentityFile ~/.ssh/deploy_key" >> ~/.ssh/config
+          echo "  IdentitiesOnly yes" >> ~/.ssh/config
 
       - name: Configure git for deploy pushes
         run: |
@@ -89,14 +95,15 @@ jobs:
         if: steps.should-proceed.outputs.proceed == 'true'
         id: current-version
         run: |
-          echo "mod_version=$(grep '^version=' gradle.properties | cut -d'=' -f2)" >> "$GITHUB_OUTPUT"
-          echo "minecraft_version=$(grep '^minecraft_version=' gradle.properties | cut -d'=' -f2)" >> "$GITHUB_OUTPUT"
+          echo "mod_version=$(grep '^version=' gradle.properties | cut -d'=' -f2 | tr -d '[:space:]')" >> "$GITHUB_OUTPUT"
+          echo "minecraft_version=$(grep '^minecraft_version=' gradle.properties | cut -d'=' -f2 | tr -d '[:space:]')" >> "$GITHUB_OUTPUT"
 
       - name: Compute new version based on branch
         if: steps.should-proceed.outputs.proceed == 'true'
         id: new-version
         run: |
           CURRENT="${{ steps.current-version.outputs.mod_version }}"
+          CURRENT=$(echo "$CURRENT" | tr -d '[:space:]')
           BRANCH="${GITHUB_REF_NAME}"
           IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
 
@@ -138,6 +145,10 @@ jobs:
           MC_VERSION="${{ steps.current-version.outputs.minecraft_version }}"
           BRANCH="${GITHUB_REF_NAME}"
 
+          # Sanitize: remove any whitespace
+          NEW_VERSION=$(echo "$NEW_VERSION" | tr -d '[:space:]')
+          MC_VERSION=$(echo "$MC_VERSION" | tr -d '[:space:]')
+
           JAR_NAME="KazzUtils-${MC_VERSION}-${NEW_VERSION}.jar"
 
           if [ "$BRANCH" = "main" ]; then
@@ -162,13 +173,31 @@ jobs:
           cp "$MAIN_JAR" "$JAR_NAME"
           echo "artifact_path=${JAR_NAME}" >> "$GITHUB_ENV"
 
-      - name: Create Release
+      - name: Write release notes to file
         if: steps.should-proceed.outputs.proceed == 'true'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.release-details.outputs.release_tag }}
-          name: ${{ steps.release-details.outputs.release_title }}
-          body: ${{ github.event.head_commit.message }}
-          files: ${{ env.artifact_path }}
-          prerelease: ${{ steps.release-details.outputs.is_prerelease }}
-          make_latest: ${{ steps.release-details.outputs.make_latest }}
+        run: |
+          git log --format="%B" -1 > release_notes.md
+
+      - name: Create Release via gh CLI
+        if: steps.should-proceed.outputs.proceed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.release-details.outputs.release_tag }}"
+          TITLE="${{ steps.release-details.outputs.release_title }}"
+          JAR="${{ env.artifact_path }}"
+          PRERELEASE="${{ steps.release-details.outputs.is_prerelease }}"
+          MAKE_LATEST="${{ steps.release-details.outputs.make_latest }}"
+
+          # Sanitize inputs
+          TAG=$(echo "$TAG" | tr -d '[:space:]')
+          TITLE=$(echo "$TITLE" | tr -d '[:space:]')
+
+          echo "Creating release with tag: $TAG"
+
+          gh release create "$TAG" \
+            --title "$TITLE" \
+            --notes-file release_notes.md \
+            $([ "$PRERELEASE" = "true" ] && echo "--prerelease") \
+            $([ "$MAKE_LATEST" = "true" ] && echo "--latest" || echo "--latest=false") \
+            "$JAR"
