@@ -136,6 +136,22 @@ class LiteralNodeBuilder(private val name: String) {
     }
 
     /**
+     * Convenience method that builds an argument node and adds it as a child.
+     *
+     * This is the DSL-friendly way to add arguments inside a `literal` block:
+     * ```kotlin
+     * literal("mycommand") {
+     *     argument("arg", word()) {    // <-- automatically calls then(...)
+     *         executes { source, ctx -> ... }
+     *     }
+     * }
+     * ```
+     */
+    fun <T> argument(name: String, type: ArgumentType<T>, block: ArgumentNodeBuilder<T>.() -> Unit) {
+        then(CommandDsl.argument(name, type, block))
+    }
+
+    /**
      * Sets the execution handler for this node.
      *
      * @param handler receives (source, context) and returns 1 for success, 0 or negative for failure
@@ -191,6 +207,22 @@ class ArgumentNodeBuilder<T>(private val name: String, private val type: Argumen
      */
     fun then(node: CommandNode<FabricClientCommandSource>) {
         children.add(node)
+    }
+
+    /**
+     * Convenience method that builds an argument node and adds it as a child.
+     *
+     * This is the DSL-friendly way to add nested arguments inside an `argument` block:
+     * ```kotlin
+     * argument("arg1", word()) {
+     *     argument("arg2", word()) {   // <-- automatically calls then(...)
+     *         executes { source, ctx -> ... }
+     *     }
+     * }
+     * ```
+     */
+    fun <T> argument(name: String, type: ArgumentType<T>, block: ArgumentNodeBuilder<T>.() -> Unit) {
+        then(CommandDsl.argument(name, type, block))
     }
 
     /**

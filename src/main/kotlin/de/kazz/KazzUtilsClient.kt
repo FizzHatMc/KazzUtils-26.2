@@ -2,12 +2,16 @@ package de.kazz
 
 import de.kazz.command.KazzCommandRegistry
 import de.kazz.command.impl.KazzCommand
+import de.kazz.command.impl.TestSackTracking
 import de.kazz.config.KazzConfig
 import de.kazz.config.categories.CombatConfig
 import de.kazz.config.categories.FarmingConfig
 import de.kazz.config.ui.hud.HudManager
 import de.kazz.config.ui.hud.HudRenderer
+import de.kazz.config.ui.hud.HudTextLine
 import de.kazz.features.farming.PickupLogHud
+import de.kazz.features.generic.SackInventoryScanner
+import de.kazz.features.generic.SackTracker
 import net.fabricmc.api.ClientModInitializer
 import org.slf4j.LoggerFactory
 
@@ -33,9 +37,16 @@ object KazzUtilsClient : ClientModInitializer {
 
         // Register commands
         KazzCommandRegistry.register(KazzCommand())
+        KazzCommandRegistry.register(TestSackTracking())
         KazzCommandRegistry.registerAll()
 
-        HudManager.register(PickupLogHud())
+        HudManager.register(SackTracker())
+
+        // Register chat message listener
+        SackTracker.listenToChatMessages()
+
+        // Register sack inventory scanner to detect when sack menus open
+        SackInventoryScanner.initialize()
 
     }
 }
