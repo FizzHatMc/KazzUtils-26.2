@@ -1,4 +1,4 @@
-package de.kazz.features.generic
+package de.kazz.features.sack
 
 import de.kazz.config.ConfigColor
 import de.kazz.config.ui.hud.HudElement

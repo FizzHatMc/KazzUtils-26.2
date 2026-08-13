@@ -1,4 +1,4 @@
-package de.kazz.features.generic
+package de.kazz.features.sack
 
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject

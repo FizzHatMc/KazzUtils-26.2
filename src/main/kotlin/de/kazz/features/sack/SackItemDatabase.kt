@@ -1,9 +1,6 @@
-package de.kazz.features.generic
+package de.kazz.features.sack
 
 import com.google.gson.Gson
-import com.google.gson.JsonObject
-import com.google.gson.reflect.TypeToken
-import net.fabricmc.loader.api.FabricLoader
 import org.slf4j.LoggerFactory
 import java.io.InputStreamReader
 

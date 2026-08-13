@@ -1,4 +1,4 @@
-package de.kazz.features.generic
+package de.kazz.features.sack
 
 import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.client.gui.components.EditBox

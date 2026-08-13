@@ -1,4 +1,4 @@
-package de.kazz.features.generic
+package de.kazz.features.sack
 
 import com.mojang.blaze3d.platform.InputConstants
 import de.kazz.inventory.InventoryScanner

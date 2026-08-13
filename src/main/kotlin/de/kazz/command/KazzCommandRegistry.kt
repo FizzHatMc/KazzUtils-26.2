@@ -55,8 +55,10 @@ object KazzCommandRegistry {
      * [ClientCommandRegistrationCallback] event.
      *
      * Call this once in your [net.fabricmc.api.ClientModInitializer.onInitializeClient].
-     * After this method is called, the collected commands are cleared and cannot be
-     * re-registered (call [register] again before another [registerAll] if needed).
+     * The command lists are intentionally NOT cleared after registration, because
+     * the [ClientCommandRegistrationCallback] event can fire multiple times (e.g.,
+     * when joining a new world/server, the client command dispatcher may be refreshed).
+     * Keeping the lists ensures commands are re-registered on every invocation.
      */
     fun registerAll() {
         ClientCommandRegistrationCallback.EVENT.register { dispatcher, _ ->
@@ -98,10 +100,6 @@ object KazzCommandRegistry {
                     dispatcher.root.addChild(aliasBuilder.build())
                 }
             }
-
-            // Clear the lists to free memory, prevent accidental re-registration
-            simpleCommands.clear()
-            parameterCommands.clear()
         }
     }
 }

@@ -4,7 +4,7 @@ import de.kazz.command.SimpleKazzCommand
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource
 import net.minecraft.network.chat.Component
 
-class whatsgoingon(override val name: String = "test", override val aliases: List<String> = listOf()) : SimpleKazzCommand {
+class whatsgoingon(override val name: String = "kazztest", override val aliases: List<String> = listOf("test")) : SimpleKazzCommand {
     override fun execute(source: FabricClientCommandSource): Int {
         source.sendFeedback(Component.literal("Hallo"))
         return 1
