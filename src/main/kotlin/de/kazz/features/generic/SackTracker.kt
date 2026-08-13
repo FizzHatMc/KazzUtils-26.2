@@ -34,16 +34,39 @@ class SackTracker : HudElement("sack_tracker") {
         /**
          * Set of item names that the user has selected to display on the HUD.
          * Only items in this set will be rendered by [renderContent].
+         *
+         * This is synchronized with [SackTrackerData] on initialization.
          */
         val trackedItemsFilter: MutableSet<String> = mutableSetOf()
+
+        /**
+         * Initializes the tracked items filter from persistent data.
+         * Called automatically during mod init via [SackTrackerData.initialize].
+         */
+        fun syncFromData() {
+            trackedItemsFilter.clear()
+            trackedItemsFilter.addAll(SackTrackerData.getTrackedNames())
+            // Also sync amounts from persistent data
+            // Add ALL tracked items to trackedItems, even if amount is 0,
+            // so they appear in the HUD render loop
+            for ((name, data) in SackTrackerData.getAllItems()) {
+                if (data.tracked) {
+                    trackedItems[name] = data.amount
+                }
+            }
+        }
 
         fun change(addItem: String, amount: Int) {
             val temp = trackedItems[addItem] ?: 0
             trackedItems[addItem] = temp + amount
+            // Also update persistent data
+            SackTrackerData.addAmount(addItem, amount)
         }
 
         fun set(addItem: String, amount: Int) {
             trackedItems[addItem] = amount
+            // Also update persistent data
+            SackTrackerData.setAmount(addItem, amount)
         }
 
         /**
@@ -53,9 +76,11 @@ class SackTracker : HudElement("sack_tracker") {
         fun toggleItem(itemName: String): Boolean {
             return if (itemName in trackedItemsFilter) {
                 trackedItemsFilter.remove(itemName)
+                SackTrackerData.setTracked(itemName, false)
                 false
             } else {
                 trackedItemsFilter.add(itemName)
+                SackTrackerData.setTracked(itemName, true)
                 true
             }
         }

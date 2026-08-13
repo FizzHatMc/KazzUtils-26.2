@@ -3,6 +3,7 @@ package de.kazz
 import de.kazz.command.KazzCommandRegistry
 import de.kazz.command.impl.KazzCommand
 import de.kazz.command.impl.TestSackTracking
+import de.kazz.command.impl.whatsgoingon
 import de.kazz.config.KazzConfig
 import de.kazz.config.categories.CombatConfig
 import de.kazz.config.categories.FarmingConfig
@@ -11,7 +12,9 @@ import de.kazz.config.ui.hud.HudRenderer
 import de.kazz.config.ui.hud.HudTextLine
 import de.kazz.features.farming.PickupLogHud
 import de.kazz.features.generic.SackInventoryScanner
+import de.kazz.features.generic.SackItemDatabase
 import de.kazz.features.generic.SackTracker
+import de.kazz.features.generic.SackTrackerData
 import net.fabricmc.api.ClientModInitializer
 import org.slf4j.LoggerFactory
 
@@ -35,9 +38,16 @@ object KazzUtilsClient : ClientModInitializer {
         // Initialize HUD system (loads positions from disk)
         HudRenderer.initialize()
 
+        // Initialize sack item database (loads from mod resources)
+        SackItemDatabase.initialize()
+
+        // Initialize sack tracker data (loads from disk or creates from database)
+        SackTrackerData.initialize()
+
         // Register commands
         KazzCommandRegistry.register(KazzCommand())
         KazzCommandRegistry.register(TestSackTracking())
+        KazzCommandRegistry.register(whatsgoingon())
         KazzCommandRegistry.registerAll()
 
         HudManager.register(SackTracker())
