@@ -1,6 +1,7 @@
-package de.kazz.features.sack
+package de.kazz.features.general.sack
 
 import de.kazz.config.ConfigColor
+import de.kazz.config.categories.GenericConfig
 import de.kazz.config.ui.hud.HudElement
 import de.kazz.config.ui.hud.HudTextLine
 import de.kazz.config.ui.hud.HudTextSegment
@@ -8,16 +9,28 @@ import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.HoverEvent
 import org.slf4j.LoggerFactory
+import kotlin.collections.iterator
 
 
 class SackTracker : HudElement("sack_tracker") {
 
     override fun renderContent(): List<HudTextLine> {
+        if (!GenericConfig.Sack.enabled.value) return emptyList()
+
+        val useCustom = GenericConfig.Sack.useCustomColors.value
+        val defaultNameColor = ConfigColor.WHITE
+        val defaultAmountColor = ConfigColor.GREEN
+        val nameColor = if (useCustom) GenericConfig.Sack.nameColor.value else defaultNameColor
+        val amountColor = if (useCustom) GenericConfig.Sack.amountColor.value else defaultAmountColor
+
         val lines = mutableListOf<HudTextLine>()
         for ((key, value) in trackedItems) {
             // Only render items that the user has selected for tracking
             if (key in trackedItemsFilter) {
-                lines.add(HudTextLine(listOf(HudTextSegment("$key - $value", ConfigColor.RED))))
+                lines.add(HudTextLine(listOf(
+                    HudTextSegment("$key - ", nameColor),
+                    HudTextSegment("$value", amountColor)
+                )))
             }
         }
         return lines

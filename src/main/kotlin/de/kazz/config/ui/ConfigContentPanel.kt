@@ -34,11 +34,15 @@ class ConfigContentPanel(
             openDropdownWidget = null; return true
         }
 
+        val beforeSignature = visibilitySignature()
         for (w in propertyWidgets) {
             if (w.mouseClicked(event, doubleClick)) {
                 if (w is ConfigColorWidget && w.isOpen) openDropdownWidget = w
                 if (w is ConfigEnumWidget && w.isOpen) openDropdownWidget = w
                 draggingWidget = w
+                // Rebuild if the visibility of any property changed (e.g., a toggle
+                // controlling other properties' hidden state was flipped).
+                if (visibilitySignature() != beforeSignature) rebuildWidgets()
                 return true
             }
         }
@@ -72,7 +76,14 @@ class ConfigContentPanel(
     }
 
     override fun keyPressed(event: KeyEvent): Boolean {
-        for (w in propertyWidgets) { if (w.keyPressed(event)) return true }
+        val beforeSignature = visibilitySignature()
+        for (w in propertyWidgets) {
+            if (w.keyPressed(event)) {
+                // Rebuild if a key press changed the visibility of any property.
+                if (visibilitySignature() != beforeSignature) rebuildWidgets()
+                return true
+            }
+        }
         return false
     }
 
@@ -98,6 +109,7 @@ class ConfigContentPanel(
         for (sub in category.subCategories) {
             cy += theme.bannerHeight + theme.smallPadding
             for (prop in sub.directProperties) {
+                if (isHidden(prop)) continue
                 val widgetX = cx + cw - widgetWidth
                 createWidgetForProperty(prop, widgetX, cy, widgetWidth, theme.propertyHeight)?.let { propertyWidgets.add(it) }
                 cy += theme.propertyHeight + theme.smallPadding
@@ -111,6 +123,7 @@ class ConfigContentPanel(
                 cy += theme.groupHeaderHeight + theme.smallPadding
                 if (exp) {
                     for (prop in group.properties) {
+                        if (isHidden(prop)) continue
                         val widgetX = cx + theme.padding + cw - theme.padding - widgetWidth
                         createWidgetForProperty(prop, widgetX, cy, widgetWidth, theme.propertyHeight)?.let { propertyWidgets.add(it) }
                         cy += theme.propertyHeight + theme.smallPadding
@@ -133,6 +146,31 @@ class ConfigContentPanel(
     }
 
     /**
+     * Check whether a property should currently be hidden from the UI.
+     */
+    private fun isHidden(prop: ConfigProperty<*>): Boolean = prop.hiddenWhen?.invoke() == true
+
+    /**
+     * Compute a compact signature of every property's current visibility state.
+     * Used to detect whether a UI interaction changed which properties are shown.
+     */
+    private fun visibilitySignature(): String {
+        val category = selectedCategory ?: return ""
+        val sb = StringBuilder()
+        for (sub in category.subCategories) {
+            for (prop in sub.directProperties) {
+                sb.append(if (isHidden(prop)) '1' else '0')
+            }
+            for (group in sub.groups) {
+                for (prop in group.properties) {
+                    sb.append(if (isHidden(prop)) '1' else '0')
+                }
+            }
+        }
+        return sb.toString()
+    }
+
+    /**
      * Find the hovered property and whether we're over the label area,
      * computed from the mouse position matching the rendered layout.
      */
@@ -149,6 +187,7 @@ class ConfigContentPanel(
             // Banner
             cy += theme.bannerHeight + theme.smallPadding
             for (prop in sub.directProperties) {
+                if (isHidden(prop)) continue
                 if (my in cy until (cy + theme.propertyHeight)) {
                     val onLabel = mx in cx until (cx + labelWidth)
                     return prop to onLabel
@@ -159,6 +198,7 @@ class ConfigContentPanel(
                 cy += theme.groupHeaderHeight + theme.smallPadding
                 if (expandedGroups.contains(group.key)) {
                     for (prop in group.properties) {
+                        if (isHidden(prop)) continue
                         if (my in cy until (cy + theme.propertyHeight)) {
                             val labelStart = cx + theme.padding
                             val onLabel = mx in labelStart until (labelStart + labelWidth - theme.padding)
@@ -199,6 +239,7 @@ class ConfigContentPanel(
                 cy += theme.bannerHeight + theme.smallPadding
 
                 for (prop in sub.directProperties) {
+                    if (isHidden(prop)) continue
                     val nameTruncated = if (font.width(prop.name) > labelWidth)
                         font.plainSubstrByWidth(prop.name, labelWidth - 3) + "..." else prop.name
                     graphics.text(font, nameTruncated, cx, cy + (theme.propertyHeight - font.lineHeight) / 2, theme.propertyLabelColor, true)
@@ -214,6 +255,7 @@ class ConfigContentPanel(
                     cy += theme.groupHeaderHeight + theme.smallPadding
                     if (expandedGroups.contains(group.key)) {
                         for (prop in group.properties) {
+                            if (isHidden(prop)) continue
                             val nameTruncated = if (font.width(prop.name) > labelWidth - theme.padding)
                                 font.plainSubstrByWidth(prop.name, labelWidth - theme.padding - 3) + "..." else prop.name
                             graphics.text(font, nameTruncated, cx + theme.padding, cy + (theme.propertyHeight - font.lineHeight) / 2, theme.propertyLabelColor, true)
@@ -250,8 +292,8 @@ class ConfigContentPanel(
             }
 
             // Tooltip on hover (only when hovering the name label)
-            if (onLabel && hoveredProp != null && hoveredProp!!.description.isNotEmpty()) {
-                val hovered = hoveredProp!!
+            if (onLabel && hoveredProp != null && hoveredProp.description.isNotEmpty()) {
+                val hovered = hoveredProp
                 val lines = listOf(hovered.name, hovered.description)
                 val maxTw = lines.maxOfOrNull { font.width(it) } ?: 0
                 val tw = maxTw + 12; val th = lines.size * (font.lineHeight + 2) + 6

@@ -1,4 +1,4 @@
-package de.kazz.features.sack
+package de.kazz.features.general.sack
 
 import com.google.gson.Gson
 import org.slf4j.LoggerFactory

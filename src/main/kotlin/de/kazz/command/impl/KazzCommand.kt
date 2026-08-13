@@ -3,7 +3,7 @@ package de.kazz.command.impl
 import de.kazz.command.CommandDsl.literal
 import de.kazz.command.ParameterKazzCommand
 import de.kazz.config.ui.ConfigScreen
-import de.kazz.features.sack.SackTrackerScreen
+import de.kazz.features.general.sack.SackTrackerScreen
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource
 import net.minecraft.client.Minecraft
 import com.mojang.brigadier.tree.LiteralCommandNode

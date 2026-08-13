@@ -1,4 +1,4 @@
-package de.kazz.features.sack
+package de.kazz.features.general.sack
 
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject
@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
+import kotlin.collections.iterator
 
 /**
  * Represents the persisted data for a single tracked/trackable item.

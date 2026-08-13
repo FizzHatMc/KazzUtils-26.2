@@ -2,17 +2,14 @@ package de.kazz
 
 import de.kazz.command.KazzCommandRegistry
 import de.kazz.command.impl.KazzCommand
-import de.kazz.command.impl.TestSackTracking
-import de.kazz.command.impl.whatsgoingon
 import de.kazz.config.KazzConfig
-import de.kazz.config.categories.CombatConfig
-import de.kazz.config.categories.FarmingConfig
+import de.kazz.config.categories.GenericConfig
 import de.kazz.config.ui.hud.HudManager
 import de.kazz.config.ui.hud.HudRenderer
-import de.kazz.features.sack.SackInventoryScanner
-import de.kazz.features.sack.SackItemDatabase
-import de.kazz.features.sack.SackTracker
-import de.kazz.features.sack.SackTrackerData
+import de.kazz.features.general.sack.SackInventoryScanner
+import de.kazz.features.general.sack.SackItemDatabase
+import de.kazz.features.general.sack.SackTracker
+import de.kazz.features.general.sack.SackTrackerData
 import net.fabricmc.api.ClientModInitializer
 import org.slf4j.LoggerFactory
 
@@ -28,17 +25,13 @@ object KazzUtilsClient : ClientModInitializer {
         // could potentially throw an exception, to ensure they are always
         // available regardless of feature initialization failures.
         KazzCommandRegistry.register(KazzCommand())
-        KazzCommandRegistry.register(TestSackTracking())
-        KazzCommandRegistry.register(whatsgoingon())
         KazzCommandRegistry.registerAll()
 
         // ── 2. Initialize config ──────────────────────────────────────
         // Force-initialize all category objects so they register themselves
         // with KazzConfig before we load the config from disk.
         @Suppress("unused")
-        val _combat = CombatConfig
-        @Suppress("unused")
-        val _farming = FarmingConfig
+        val _generic = GenericConfig
 
         // Load config from disk. This must happen before any feature reads config values.
         try {

@@ -1,4 +1,4 @@
-package de.kazz.features.sack
+package de.kazz.features.general.sack
 
 import com.mojang.blaze3d.platform.InputConstants
 import de.kazz.inventory.InventoryScanner
@@ -11,6 +11,7 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
 import net.minecraft.resources.Identifier
 import org.lwjgl.glfw.GLFW
 import org.slf4j.LoggerFactory
+import kotlin.collections.iterator
 
 /**
  * Listens for sack menu openings, scans the inventory contents, and updates
