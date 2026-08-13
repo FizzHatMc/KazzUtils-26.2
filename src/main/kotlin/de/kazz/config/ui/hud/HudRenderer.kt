@@ -44,8 +44,6 @@ object HudRenderer {
             ::renderAll
         )
 
-        // Load persisted positions after registration
-        HudManager.load()
     }
 
     /**

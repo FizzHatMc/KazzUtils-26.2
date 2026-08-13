@@ -3,6 +3,9 @@ package de.kazz.config.categories
 import de.kazz.config.ConfigCategoryScope
 import de.kazz.config.ConfigColor
 import de.kazz.config.ConfigSubCategoryScope
+import de.kazz.config.categories.GenericConfig.Sack.actionButton
+import de.kazz.config.ui.hud.HudEditScreen
+import net.minecraft.client.Minecraft
 
 /**
  * Generic category config.
@@ -14,6 +17,16 @@ import de.kazz.config.ConfigSubCategoryScope
  * ```
  */
 object GenericConfig : ConfigCategoryScope("Generic") {
+
+    object General : ConfigSubCategoryScope("General", "generic") {
+        var openEdit = actionButton(
+            name = "Edit GUI",
+            description = "Open Edit GUI to move Features around.",
+            action = {
+                Minecraft.getInstance().gui.setScreen(HudEditScreen())
+            }
+        )
+    }
 
     /**
      * Sack sub-category.
